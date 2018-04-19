@@ -21,9 +21,9 @@ import (
 	"time"
 )
 
-const (
-	bulkURL  = "https://bulk.sms-online.com/"
-	mediaURL = "https://media.sms-online.com/upload/"
+var (
+	mediaURL string
+	bulkURL  string
 )
 
 type message struct {
@@ -241,6 +241,8 @@ func main() {
 	flag.StringVar(&imageFile, "imagefile", "", "Image filepath")
 	flag.StringVar(&groupID, "groupid", "", "ID for the dispatch")
 
+	flag.StringVar(&bulkURL, "bulkurl", "https://bulk.sms-online.com/", "Bulk API URL")
+	flag.StringVar(&mediaURL, "mediaurl", "https://media.sms-online.com/upload/", "Media API URL")
 	flag.IntVar(&batchSize, "batchsize", 10, "Number of phones in one http request")
 	flag.IntVar(&threads, "threads", 1, "Parallel threads")
 
