@@ -226,6 +226,7 @@ func main() {
 
 	var threads int
 	var batchSize int
+	var smsSize int
 
 	sentCounter := 0
 
@@ -245,8 +246,16 @@ func main() {
 	flag.StringVar(&mediaURL, "mediaurl", "https://media.sms-online.com/upload/", "Media API URL")
 	flag.IntVar(&batchSize, "batchsize", 10, "Number of phones in one http request")
 	flag.IntVar(&threads, "threads", 1, "Parallel threads")
+	flag.IntVar(&smsSize, "smssize", 1, "Size of sms")
 
 	flag.Parse()
+
+	if sendingMethod == "sms" || sendingMethod == "" {
+		err := ValidSmsSize(text, smsSize)
+		if err != nil {
+			log.Fatalf("Размер текста СМС не соответствует введенному размеру СМС: %s", err)
+		}
+	}
 
 	if imageFile != "" && imageID == "" {
 		imageID = uploadImage(imageFile, user, pass)
