@@ -27,16 +27,18 @@ var (
 )
 
 type message struct {
-	user          string
-	pass          string
-	text          string
-	from          string
-	sendingMethod string
-	buttonText    string
-	buttonLink    string
-	imageID       string
-	phones        []string
-	groupID       string
+	user           string
+	pass           string
+	text           string
+	from           string
+	label          string
+	PTransactionID string
+	sendingMethod  string
+	buttonText     string
+	buttonLink     string
+	imageID        string
+	phones         []string
+	groupID        string
 }
 
 type bulkResp struct {
@@ -71,6 +73,12 @@ func sendMsg(msg *message) {
 	}
 	if msg.groupID != "" {
 		form.Set("group_id", msg.groupID)
+	}
+	if msg.label != "" {
+		form.Set("label", msg.label)
+	}
+	if msg.PTransactionID != "" {
+		form.Set("p_transaction_id", msg.PTransactionID)
 	}
 
 	reqTime := time.Now()
@@ -226,6 +234,8 @@ func main() {
 
 	var threads int
 	var batchSize int
+	var label string
+	var ptransactionID string
 
 	sentCounter := 0
 
@@ -245,6 +255,8 @@ func main() {
 	flag.StringVar(&mediaURL, "mediaurl", "https://media.sms-online.com/upload/", "Media API URL")
 	flag.IntVar(&batchSize, "batchsize", 10, "Number of phones in one http request")
 	flag.IntVar(&threads, "threads", 1, "Parallel threads")
+	flag.StringVar(&label, "label", "", "Label in message")
+	flag.StringVar(&ptransactionID, "p_transaction_id", "", "PTransactionID for message")
 
 	flag.Parse()
 
@@ -282,6 +294,12 @@ func main() {
 				from:   from,
 				phones: inPhones,
 			}
+			if label != "" {
+				msg.label = label
+			}
+			if ptransactionID != "" {
+				msg.PTransactionID = ptransactionID
+			}
 			if sendingMethod != "" {
 				msg.sendingMethod = sendingMethod
 			}
@@ -315,6 +333,13 @@ func main() {
 			text:   text,
 			from:   from,
 			phones: inPhones,
+		}
+
+		if label != "" {
+			msg.label = label
+		}
+		if ptransactionID != "" {
+			msg.PTransactionID = ptransactionID
 		}
 		if sendingMethod != "" {
 			msg.sendingMethod = sendingMethod
