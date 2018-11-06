@@ -35,6 +35,7 @@ type message struct {
 	buttonText    string
 	expiryTxt     string
 	buttonLink    string
+	label         string
 	imageID       string
 	phones        []string
 	groupID       string
@@ -66,6 +67,9 @@ func sendMsg(msg *message) {
 	}
 	if msg.expiryTxt != "" {
 		form.Set("expiry_txt", msg.expiryTxt)
+	}
+	if msg.label != "" {
+		form.Set("label", msg.label)
 	}
 	if msg.buttonLink != "" {
 		form.Set("button_link", msg.buttonLink)
@@ -224,6 +228,7 @@ func main() {
 	var buttonLink string
 	var buttonText string
 	var expiryTxt string
+	var label string
 	var imageID string
 	var sendingMethod string
 	var imageFile string
@@ -242,6 +247,7 @@ func main() {
 	flag.StringVar(&buttonLink, "buttonlink", "", "Link on button click")
 	flag.StringVar(&buttonText, "buttontext", "", "Text on button")
 	flag.StringVar(&expiryTxt, "expirytxt", "", "Text on expire")
+	flag.StringVar(&label, "label", "", "e.g. promotion or transaction")
 	flag.StringVar(&imageID, "imageid", "", "Image ID loaded at media.sms-online.com")
 	flag.StringVar(&sendingMethod, "sendingmethod", "", "Sending method")
 	flag.StringVar(&imageFile, "imagefile", "", "Image filepath")
@@ -297,6 +303,9 @@ func main() {
 			if expiryTxt != "" {
 				msg.expiryTxt = expiryTxt
 			}
+			if label != "" {
+				msg.label = label
+			}
 			if buttonLink != "" {
 				msg.buttonLink = buttonLink
 			}
@@ -333,6 +342,9 @@ func main() {
 		}
 		if expiryTxt != "" {
 			msg.expiryTxt = expiryTxt
+		}
+		if label != "" {
+			msg.label = label
 		}
 		if buttonLink != "" {
 			msg.buttonLink = buttonLink
