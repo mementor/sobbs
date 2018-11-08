@@ -39,6 +39,8 @@ type message struct {
 	imageID       string
 	phones        []string
 	groupID       string
+	dlrTimeout    int
+	dlr           bool
 }
 
 type bulkResp struct {
@@ -79,6 +81,12 @@ func sendMsg(msg *message) {
 	}
 	if msg.groupID != "" {
 		form.Set("group_id", msg.groupID)
+	}
+	if msg.dlrTimeout != 0 {
+		form.Set("dlr_timeout", fmt.Sprintf("%d", msg.dlrTimeout))
+	}
+	if msg.dlr {
+		form.Set("dlr", "1")
 	}
 
 	reqTime := time.Now()
@@ -233,6 +241,8 @@ func main() {
 	var sendingMethod string
 	var imageFile string
 	var groupID string
+	var dlrTimeout int
+	var dlr bool
 
 	var threads int
 	var batchSize int
@@ -252,6 +262,8 @@ func main() {
 	flag.StringVar(&sendingMethod, "sendingmethod", "", "Sending method")
 	flag.StringVar(&imageFile, "imagefile", "", "Image filepath")
 	flag.StringVar(&groupID, "groupid", "", "ID for the dispatch")
+	flag.IntVar(&dlrTimeout, "dlrtimeout", 0, "DLR timeout")
+	flag.BoolVar(&dlr, "dlr", false, "Delivery report flag")
 
 	flag.StringVar(&bulkURL, "bulkurl", "https://bulk.sms-online.com/", "Bulk API URL")
 	flag.StringVar(&mediaURL, "mediaurl", "https://media.sms-online.com/upload/", "Media API URL")
@@ -315,6 +327,12 @@ func main() {
 			if groupID != "" {
 				msg.groupID = groupID
 			}
+			if dlrTimeout != 0 {
+				msg.dlrTimeout = dlrTimeout
+			}
+			if dlr {
+				msg.dlr = dlr
+			}
 			msgChan <- msg
 			sentCounter += counter
 			fmt.Fprintf(os.Stderr, "Sent: %d\n", sentCounter)
@@ -354,6 +372,12 @@ func main() {
 		}
 		if groupID != "" {
 			msg.groupID = groupID
+		}
+		if dlrTimeout != 0 {
+			msg.dlrTimeout = dlrTimeout
+		}
+		if dlr {
+			msg.dlr = dlr
 		}
 		msgChan <- msg
 	}
