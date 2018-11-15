@@ -19,6 +19,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/satori/go.uuid"
 )
 
 var (
@@ -41,6 +43,7 @@ type message struct {
 	groupID       string
 	dlrTimeout    int
 	dlr           bool
+	transactionID string
 }
 
 type bulkResp struct {
@@ -88,11 +91,14 @@ func sendMsg(msg *message) {
 	if msg.dlr {
 		form.Set("dlr", "1")
 	}
+	if msg.transactionID != "" {
+		form.Set("p_transaction_id", msg.transactionID)
+	}
 
 	reqTime := time.Now()
 
 	phonesSign := strings.Join(msg.phones, "")
-	signString := fmt.Sprintf("%s%s%s%s%s", msg.user, msg.from, phonesSign, msg.text, msg.pass)
+	signString := fmt.Sprintf("%s%s%s%s%s%s", msg.transactionID, msg.user, msg.from, phonesSign, msg.text, msg.pass)
 	sign := fmt.Sprintf("%x", md5.Sum([]byte(signString)))
 
 	form.Set("sign", sign)
@@ -332,6 +338,11 @@ func main() {
 			}
 			if dlr {
 				msg.dlr = dlr
+				transactionID, errUUID := uuid.NewV4()
+				if errUUID != nil {
+					fmt.Fprintf(os.Stderr, "Cant generate UUID: %s\n", errUUID)
+				}
+				msg.transactionID = transactionID.String()
 			}
 			msgChan <- msg
 			sentCounter += counter
@@ -378,6 +389,11 @@ func main() {
 		}
 		if dlr {
 			msg.dlr = dlr
+			transactionID, errUUID := uuid.NewV4()
+			if errUUID != nil {
+				fmt.Fprintf(os.Stderr, "Cant generate UUID: %s\n", errUUID)
+			}
+			msg.transactionID = transactionID.String()
 		}
 		msgChan <- msg
 	}
