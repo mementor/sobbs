@@ -116,7 +116,7 @@ func sendMsg(msg *message) {
 
 	if errHTTP != nil {
 		for _, phone := range msg.phones {
-			fmt.Printf("%s;%s;%s;%s;%s;error: %s\n", msg.transactionID, phone, reqTime.String(), respTime.String(), lag, errHTTP)
+			fmt.Printf("%s;%s;%s;%s;%s;error: %s\n", phone, msg.transactionID, reqTime.String(), respTime.String(), lag, errHTTP)
 		}
 		return
 	}
@@ -130,11 +130,11 @@ func sendMsg(msg *message) {
 		}
 	} else if parsedResp.Message != "OK" {
 		for _, phone := range msg.phones {
-			fmt.Printf("%s;%s;%s;%s;%s;%s;%d;%s\n", msg.transactionID, phone, reqTime.String(), respTime.String(), lag, parsedResp.MessageID, parsedResp.Code, parsedResp.Message)
+			fmt.Printf("%s;%s;%s;%s;%s;%s;%d;%s\n", phone, msg.transactionID, reqTime.String(), respTime.String(), lag, parsedResp.MessageID, parsedResp.Code, parsedResp.Message)
 		}
 	} else {
 		for _, phone := range msg.phones {
-			fmt.Printf("%s;%s;%s;%s;%s;%s\n", msg.transactionID, phone, reqTime.String(), respTime.String(), lag, bodyBytes)
+			fmt.Printf("%s;%s;%s;%s;%s;%s\n", phone, msg.transactionID, reqTime.String(), respTime.String(), lag, bodyBytes)
 		}
 	}
 }
