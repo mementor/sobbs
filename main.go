@@ -98,7 +98,7 @@ func sendMsg(msg *message) {
 	reqTime := time.Now()
 
 	phonesSign := strings.Join(msg.phones, "")
-	signString := fmt.Sprintf("%s%s%s%s%s%s", msg.transactionID, msg.user, msg.from, phonesSign, msg.text, msg.pass)
+	signString := fmt.Sprintf("%s%s%s%s%s", msg.user, msg.from, phonesSign, msg.text, msg.pass)
 	sign := fmt.Sprintf("%x", md5.Sum([]byte(signString)))
 
 	form.Set("sign", sign)
@@ -115,7 +115,7 @@ func sendMsg(msg *message) {
 
 	if errHTTP != nil {
 		for _, phone := range msg.phones {
-			fmt.Printf("%s;%s;%s;%s;error: %s\n", phone, reqTime.String(), respTime.String(), lag, errHTTP)
+			fmt.Printf("%s;%s;%s;%s;%s;error: %s\n", msg.transactionID, phone, reqTime.String(), respTime.String(), lag, errHTTP)
 		}
 		return
 	}
