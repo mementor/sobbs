@@ -47,8 +47,9 @@ type message struct {
 }
 
 type bulkResp struct {
-	Code    int    `xml:"code"`
-	Message string `xml:"tech_message"`
+	Code      int    `xml:"code"`
+	Message   string `xml:"tech_message"`
+	MessageID string `xml:"msg_id"`
 }
 
 type mediaResp struct {
@@ -125,11 +126,11 @@ func sendMsg(msg *message) {
 	xml.Unmarshal(bodyBytes, &parsedResp)
 	if parsedResp.Code == 0 && parsedResp.Message == "OK" {
 		for _, phone := range msg.phones {
-			fmt.Printf("%s;%s;%s;%s;%s;%d;%s\n", msg.transactionID, phone, reqTime.String(), respTime.String(), lag, parsedResp.Code, parsedResp.Message)
+			fmt.Printf("%s;%s;%s;%s;%s;%s;%d;%s\n", phone, msg.transactionID, reqTime.String(), respTime.String(), lag, parsedResp.MessageID, parsedResp.Code, parsedResp.Message)
 		}
 	} else if parsedResp.Message != "OK" {
 		for _, phone := range msg.phones {
-			fmt.Printf("%s;%s;%s;%s;%s;%d;%s\n", msg.transactionID, phone, reqTime.String(), respTime.String(), lag, parsedResp.Code, parsedResp.Message)
+			fmt.Printf("%s;%s;%s;%s;%s;%s;%d;%s\n", msg.transactionID, phone, reqTime.String(), respTime.String(), lag, parsedResp.MessageID, parsedResp.Code, parsedResp.Message)
 		}
 	} else {
 		for _, phone := range msg.phones {
