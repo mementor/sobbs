@@ -125,15 +125,15 @@ func sendMsg(msg *message) {
 	xml.Unmarshal(bodyBytes, &parsedResp)
 	if parsedResp.Code == 0 && parsedResp.Message == "OK" {
 		for _, phone := range msg.phones {
-			fmt.Printf("%s;%s;%s;%s;%d;%s\n", phone, reqTime.String(), respTime.String(), lag, parsedResp.Code, parsedResp.Message)
+			fmt.Printf("%s;%s;%s;%s;%s;%d;%s\n", msg.transactionID, phone, reqTime.String(), respTime.String(), lag, parsedResp.Code, parsedResp.Message)
 		}
 	} else if parsedResp.Message != "OK" {
 		for _, phone := range msg.phones {
-			fmt.Printf("%s;%s;%s;%s;%d;%s\n", phone, reqTime.String(), respTime.String(), lag, parsedResp.Code, parsedResp.Message)
+			fmt.Printf("%s;%s;%s;%s;%s;%d;%s\n", msg.transactionID, phone, reqTime.String(), respTime.String(), lag, parsedResp.Code, parsedResp.Message)
 		}
 	} else {
 		for _, phone := range msg.phones {
-			fmt.Printf("%s;%s;%s;%s;%s\n", phone, reqTime.String(), respTime.String(), lag, bodyBytes)
+			fmt.Printf("%s;%s;%s;%s;%s;%s\n", msg.transactionID, phone, reqTime.String(), respTime.String(), lag, bodyBytes)
 		}
 	}
 }
