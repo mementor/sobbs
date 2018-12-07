@@ -24,9 +24,32 @@ import (
 )
 
 var (
-	mediaURL string
-	bulkURL  string
+	mode          string
+	mediaURL      string
+	bulkURL       string
+	phiURL        string
+	user          string
+	pass          string
+	text          string
+	from          string
+	buttonLink    string
+	buttonText    string
+	expiryTxt     string
+	label         string
+	imageID       string
+	sendingMethod string
+	imageFile     string
+	groupID       string
+	dlrTimeout    int
+	dlr           bool
+	threads       int
+	batchSize     int
+
+	msgChan chan *message
+	phiChan chan *phiMsg
 )
+
+//
 
 type message struct {
 	user          string
@@ -46,10 +69,28 @@ type message struct {
 	transactionID string
 }
 
+type phiMsg struct {
+	phones []string
+}
+
 type bulkResp struct {
 	Code      int    `xml:"code"`
 	Message   string `xml:"tech_message"`
 	MessageID string `xml:"msg_id"`
+}
+
+type phiResp struct {
+	Code    int         `xml:"code"`
+	Message string      `xml:"techmsg"`
+	Phones  []phiPhones `xml:"phones>phone"`
+}
+
+type phiPhones struct {
+	Country  string `xml:"cn"`
+	Operator string `xml:"op"`
+	OpName   string `xml:"op_name"`
+	MCCMNC   string `xml:"mccmnc"`
+	Phone    string `xml:"n_phone"`
 }
 
 type mediaResp struct {
@@ -139,6 +180,49 @@ func sendMsg(msg *message) {
 	}
 }
 
+func sendPhi(phi *phiMsg) {
+	form := url.Values{
+		"action":   {"phone_info"},
+		"username": {user},
+	}
+
+	phonesSign := strings.Join(phi.phones, "")
+	signString := fmt.Sprintf("phone_info%s%s%s", user, phonesSign, pass)
+	sign := fmt.Sprintf("%x", md5.Sum([]byte(signString)))
+
+	form.Set("sign", sign)
+
+	for _, phoneOne := range phi.phones {
+		form.Add("phone", phoneOne)
+	}
+
+	resp, errHTTP := http.PostForm(phiURL, form)
+
+	if errHTTP != nil {
+		for _, phone := range phi.phones {
+			fmt.Printf("%s;error: %s\n", phone, errHTTP)
+		}
+		return
+	}
+	defer resp.Body.Close()
+	var parsedResp phiResp
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	xml.Unmarshal(bodyBytes, &parsedResp)
+	if parsedResp.Code == 0 && parsedResp.Message == "OK" {
+		for _, phone := range parsedResp.Phones {
+			fmt.Printf("%s;%d;%s;%s;%s;%s;%s\n", phone.Phone, parsedResp.Code, parsedResp.Message, phone.Country, phone.Operator, phone.OpName, phone.MCCMNC)
+		}
+	} else if parsedResp.Message != "OK" {
+		for _, phone := range phi.phones {
+			fmt.Printf("%s;%d;%s\n", phone, parsedResp.Code, parsedResp.Message)
+		}
+	} else {
+		for _, phone := range phi.phones {
+			fmt.Printf("%s;ERROR\n", phone)
+		}
+	}
+}
+
 func worker(wg *sync.WaitGroup, msgChan chan *message, exitChan chan bool) {
 	fmt.Fprintln(os.Stderr, "Worker up")
 
@@ -146,6 +230,9 @@ func worker(wg *sync.WaitGroup, msgChan chan *message, exitChan chan bool) {
 		select {
 		case msg := <-msgChan:
 			sendMsg(msg)
+			wg.Done()
+		case phi := <-phiChan:
+			sendPhi(phi)
 			wg.Done()
 		case <-exitChan:
 			wg.Done()
@@ -236,30 +323,14 @@ func newfileUploadRequest(uri string, params map[string]string, paramName, path 
 
 func main() {
 
-	var user string
-	var pass string
-	var text string
-	var from string
-	var buttonLink string
-	var buttonText string
-	var expiryTxt string
-	var label string
-	var imageID string
-	var sendingMethod string
-	var imageFile string
-	var groupID string
-	var dlrTimeout int
-	var dlr bool
-
-	var threads int
-	var batchSize int
-
 	sentCounter := 0
 
 	flag.StringVar(&user, "user", "", "Bulk API user")
 	flag.StringVar(&pass, "pass", "", "Bulk API pass")
 	flag.StringVar(&text, "text", "", "text to send")
 	flag.StringVar(&from, "from", "", "text to send from")
+
+	flag.StringVar(&mode, "mode", "msg", "msg for sending messages or phi for PhoneInfo")
 
 	flag.StringVar(&buttonLink, "buttonlink", "", "Link on button click")
 	flag.StringVar(&buttonText, "buttontext", "", "Text on button")
@@ -273,6 +344,7 @@ func main() {
 	flag.BoolVar(&dlr, "dlr", false, "Delivery report flag")
 
 	flag.StringVar(&bulkURL, "bulkurl", "https://bulk.sms-online.com/", "Bulk API URL")
+	flag.StringVar(&phiURL, "phiurl", "https://pc.sms-online.com/", "PhoneInfo API URL")
 	flag.StringVar(&mediaURL, "mediaurl", "https://media.sms-online.com/upload/", "Media API URL")
 	flag.IntVar(&batchSize, "batchsize", 10, "Number of phones in one http request")
 	flag.IntVar(&threads, "threads", 1, "Parallel threads")
@@ -287,7 +359,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "image_id: %s\n", imageID)
 	}
 
-	msgChan := make(chan *message, 1)
+	msgChan = make(chan *message, 1)
+	phiChan = make(chan *phiMsg, 1)
 	exitChan := make(chan bool, 1)
 
 	var wg sync.WaitGroup
@@ -306,46 +379,11 @@ func main() {
 			counter++
 		} else {
 			wg.Add(1)
-			msg := &message{
-				user:   user,
-				pass:   pass,
-				text:   text,
-				from:   from,
-				phones: inPhones,
+			if mode == "msg" {
+				composeMessage(inPhones)
+			} else if mode == "phi" {
+				phiChan <- &phiMsg{phones: inPhones}
 			}
-			if sendingMethod != "" {
-				msg.sendingMethod = sendingMethod
-			}
-			if buttonText != "" {
-				msg.buttonText = buttonText
-			}
-			if expiryTxt != "" {
-				msg.expiryTxt = expiryTxt
-			}
-			if label != "" {
-				msg.label = label
-			}
-			if buttonLink != "" {
-				msg.buttonLink = buttonLink
-			}
-			if imageID != "" {
-				msg.imageID = imageID
-			}
-			if groupID != "" {
-				msg.groupID = groupID
-			}
-			if dlrTimeout != 0 {
-				msg.dlrTimeout = dlrTimeout
-			}
-			if dlr {
-				msg.dlr = dlr
-				transactionID, errUUID := uuid.NewV4()
-				if errUUID != nil {
-					fmt.Fprintf(os.Stderr, "Cant generate UUID: %s\n", errUUID)
-				}
-				msg.transactionID = transactionID.String()
-			}
-			msgChan <- msg
 			sentCounter += counter
 			fmt.Fprintf(os.Stderr, "Sent: %d\n", sentCounter)
 			inPhones = make([]string, 0, batchSize)
@@ -357,46 +395,11 @@ func main() {
 	}
 	if counter > 1 {
 		wg.Add(1)
-		msg := &message{
-			user:   user,
-			pass:   pass,
-			text:   text,
-			from:   from,
-			phones: inPhones,
+		if mode == "msg" {
+			composeMessage(inPhones)
+		} else if mode == "phi" {
+			phiChan <- &phiMsg{phones: inPhones}
 		}
-		if sendingMethod != "" {
-			msg.sendingMethod = sendingMethod
-		}
-		if buttonText != "" {
-			msg.buttonText = buttonText
-		}
-		if expiryTxt != "" {
-			msg.expiryTxt = expiryTxt
-		}
-		if label != "" {
-			msg.label = label
-		}
-		if buttonLink != "" {
-			msg.buttonLink = buttonLink
-		}
-		if imageID != "" {
-			msg.imageID = imageID
-		}
-		if groupID != "" {
-			msg.groupID = groupID
-		}
-		if dlrTimeout != 0 {
-			msg.dlrTimeout = dlrTimeout
-		}
-		if dlr {
-			msg.dlr = dlr
-			transactionID, errUUID := uuid.NewV4()
-			if errUUID != nil {
-				fmt.Fprintf(os.Stderr, "Cant generate UUID: %s\n", errUUID)
-			}
-			msg.transactionID = transactionID.String()
-		}
-		msgChan <- msg
 	}
 	fmt.Fprintln(os.Stderr, "Done!")
 
@@ -406,4 +409,47 @@ func main() {
 	close(exitChan)
 	wg.Add(threads)
 	wg.Wait()
+}
+
+func composeMessage(inPhones []string) {
+	msg := &message{
+		user:   user,
+		pass:   pass,
+		text:   text,
+		from:   from,
+		phones: inPhones,
+	}
+	if sendingMethod != "" {
+		msg.sendingMethod = sendingMethod
+	}
+	if buttonText != "" {
+		msg.buttonText = buttonText
+	}
+	if expiryTxt != "" {
+		msg.expiryTxt = expiryTxt
+	}
+	if label != "" {
+		msg.label = label
+	}
+	if buttonLink != "" {
+		msg.buttonLink = buttonLink
+	}
+	if imageID != "" {
+		msg.imageID = imageID
+	}
+	if groupID != "" {
+		msg.groupID = groupID
+	}
+	if dlrTimeout != 0 {
+		msg.dlrTimeout = dlrTimeout
+	}
+	if dlr {
+		msg.dlr = dlr
+		transactionID, errUUID := uuid.NewV4()
+		if errUUID != nil {
+			fmt.Fprintf(os.Stderr, "Cant generate UUID: %s\n", errUUID)
+		}
+		msg.transactionID = transactionID.String()
+	}
+	msgChan <- msg
 }
