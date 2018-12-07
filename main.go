@@ -91,6 +91,7 @@ type phiPhones struct {
 	OpName   string `xml:"op_name"`
 	MCCMNC   string `xml:"mccmnc"`
 	Phone    string `xml:"n_phone"`
+	Location string `xml:"loc"`
 }
 
 type mediaResp struct {
@@ -210,7 +211,7 @@ func sendPhi(phi *phiMsg) {
 	xml.Unmarshal(bodyBytes, &parsedResp)
 	if parsedResp.Code == 0 && parsedResp.Message == "OK" {
 		for _, phone := range parsedResp.Phones {
-			fmt.Printf("%s;%d;%s;%s;%s;%s;%s\n", phone.Phone, parsedResp.Code, parsedResp.Message, phone.Country, phone.Operator, phone.OpName, phone.MCCMNC)
+			fmt.Printf("%s;%d;%s;%s;%s;%s;%s;%s\n", phone.Phone, parsedResp.Code, parsedResp.Message, phone.Country, phone.Operator, phone.OpName, phone.MCCMNC, phone.Location)
 		}
 	} else if parsedResp.Message != "OK" {
 		for _, phone := range phi.phones {
