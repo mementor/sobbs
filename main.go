@@ -459,5 +459,5 @@ func composeMessage(inPhones []string) {
 		}
 		msg.transactionID = transactionID.String()
 	}
-	// msgChan <- msg
+	msgChan <- msg
 }
