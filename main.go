@@ -20,7 +20,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/satori/go.uuid"
+	"github.com/mementor/sobbs/limiter"
+	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -44,6 +45,7 @@ var (
 	dlr           bool
 	threads       int
 	batchSize     int
+	rps           float64
 
 	msgChan chan *message
 	phiChan chan *phiMsg
@@ -348,6 +350,7 @@ func main() {
 	flag.StringVar(&phiURL, "phiurl", "https://pc.sms-online.com/", "PhoneInfo API URL")
 	flag.StringVar(&mediaURL, "mediaurl", "https://media.sms-online.com/upload/", "Media API URL")
 	flag.IntVar(&batchSize, "batchsize", 10, "Number of phones in one http request")
+	flag.Float64Var(&rps, "rps", 0, "Requests per second")
 	flag.IntVar(&threads, "threads", 1, "Parallel threads")
 
 	flag.Parse()
@@ -373,8 +376,11 @@ func main() {
 	inPhones := make([]string, 0, batchSize)
 	counter := 1
 
+	sleeper := limiter.New(rps)
+
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
+		sleeper.Sleep()
 		inPhones = append(inPhones, scanner.Text())
 		if counter < batchSize {
 			counter++
@@ -389,6 +395,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Sent: %d\n", sentCounter)
 			inPhones = make([]string, 0, batchSize)
 			counter = 1
+			sleeper.Reset()
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -452,5 +459,5 @@ func composeMessage(inPhones []string) {
 		}
 		msg.transactionID = transactionID.String()
 	}
-	msgChan <- msg
+	// msgChan <- msg
 }
