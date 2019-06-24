@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/mementor/sobbs/limiter"
+	"github.com/mementor/sobbs/randomer"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -32,6 +33,7 @@ var (
 	user          string
 	pass          string
 	text          string
+	textsFile     string
 	from          string
 	buttonLink    string
 	buttonText    string
@@ -49,6 +51,8 @@ var (
 
 	msgChan chan *message
 	phiChan chan *phiMsg
+
+	randStringer *randomer.RandString
 )
 
 //
@@ -331,6 +335,7 @@ func main() {
 	flag.StringVar(&user, "user", "", "Bulk API user")
 	flag.StringVar(&pass, "pass", "", "Bulk API pass")
 	flag.StringVar(&text, "text", "", "text to send")
+	flag.StringVar(&textsFile, "textsfile", "", "file caontaining texts (with placeholders)")
 	flag.StringVar(&from, "from", "", "text to send from")
 
 	flag.StringVar(&mode, "mode", "msg", "msg for sending messages or phi for PhoneInfo")
@@ -361,6 +366,27 @@ func main() {
 			return
 		}
 		fmt.Fprintf(os.Stderr, "image_id: %s\n", imageID)
+	}
+
+	if textsFile != "" {
+		textsFD, errOpen := os.Open(textsFile)
+		if errOpen != nil {
+			log.Fatal(errOpen)
+		}
+		defer textsFD.Close()
+		randStringer = randomer.NewRandString()
+		scanner := bufio.NewScanner(textsFD)
+		for scanner.Scan() {
+			randStringer.Add(scanner.Text())
+		}
+
+		if errScan := scanner.Err(); errScan != nil {
+			log.Fatal(errScan)
+		}
+	}
+	if randStringer != nil {
+		log.Println("Random texts mode is active — batchSize set to 1")
+		batchSize = 1
 	}
 
 	msgChan = make(chan *message, 1)
@@ -426,6 +452,9 @@ func composeMessage(inPhones []string) {
 		text:   text,
 		from:   from,
 		phones: inPhones,
+	}
+	if randStringer != nil {
+		msg.text = randStringer.String()
 	}
 	if sendingMethod != "" {
 		msg.sendingMethod = sendingMethod
