@@ -7,7 +7,10 @@ import (
 	"time"
 )
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+const (
+	alfanumBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+	numBytes     = "1234567890"
+)
 
 // RandString contains random texts and methods to retreive them
 type RandString struct {
@@ -38,13 +41,24 @@ func (rs *RandString) String() string {
 		return ""
 	}
 	rnd := rand.Intn(rs.len)
-	return strings.ReplaceAll(rs.strings[rnd], "{rnd}", randomString(6))
+	retString := rs.strings[rnd]
+	retString = strings.ReplaceAll(retString, "{rnd}", randomAlfanum(6))
+	retString = strings.ReplaceAll(retString, "{rndnum}", randomNum(12))
+	return retString
 }
 
-func randomString(n int) string {
+func randomAlfanum(n int) string {
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[rand.Int63()%int64(len(letterBytes))]
+		b[i] = alfanumBytes[rand.Int63()%int64(len(alfanumBytes))]
+	}
+	return string(b)
+}
+
+func randomNum(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = numBytes[rand.Int63()%int64(len(numBytes))]
 	}
 	return string(b)
 }
