@@ -26,6 +26,7 @@ import (
 )
 
 var (
+	version       string
 	mode          string
 	mediaURL      string
 	bulkURL       string
@@ -330,6 +331,11 @@ func newfileUploadRequest(uri string, params map[string]string, paramName, path 
 
 func main() {
 
+	if os.Args[1] == "version" {
+		fmt.Printf("%s\n", version)
+		os.Exit(0)
+	}
+
 	sentCounter := 0
 
 	flag.StringVar(&user, "user", "", "Bulk API user")
@@ -482,10 +488,7 @@ func composeMessage(inPhones []string) {
 	}
 	if dlr {
 		msg.dlr = dlr
-		transactionID, errUUID := uuid.NewV4()
-		if errUUID != nil {
-			fmt.Fprintf(os.Stderr, "Cant generate UUID: %s\n", errUUID)
-		}
+		transactionID := uuid.NewV4()
 		msg.transactionID = transactionID.String()
 	}
 	msgChan <- msg
