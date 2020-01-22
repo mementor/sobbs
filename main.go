@@ -443,9 +443,6 @@ func main() {
 		}
 	}
 	fmt.Fprintln(os.Stderr, "Done!")
-
-	wg.Wait()
-
 	fmt.Fprintln(os.Stderr, "Cleaning...")
 	close(exitChan)
 	wg.Wait()
