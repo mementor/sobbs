@@ -400,7 +400,8 @@ func main() {
 	exitChan := make(chan bool, 1)
 
 	var wg sync.WaitGroup
-	wg.Add(threads)
+	var threadsWG sync.WaitGroup
+	threadsWG.Add(threads)
 	
 	for i := 0; i < threads; i++ {
 		go worker(&wg, msgChan, exitChan)
@@ -444,8 +445,10 @@ func main() {
 	}
 	fmt.Fprintln(os.Stderr, "Done!")
 	fmt.Fprintln(os.Stderr, "Cleaning...")
-	close(exitChan)
+	
 	wg.Wait()
+	close(exitChan)
+	threadsWG.Wait()
 }
 
 func composeMessage(inPhones []string) {
