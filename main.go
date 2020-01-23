@@ -243,7 +243,7 @@ func worker(wg *sync.WaitGroup, msgChan chan *message, exitChan chan bool) {
 			sendPhi(phi)
 			wg.Done()
 		case <-exitChan:
-			wg.Done()
+			threadsWG.Done()
 			return
 		}
 	}
