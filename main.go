@@ -231,7 +231,7 @@ func sendPhi(phi *phiMsg) {
 	}
 }
 
-func worker(wg *sync.WaitGroup, msgChan chan *message, exitChan chan bool) {
+func worker(wg *sync.WaitGroup, threadsWG *sync.WaitGroup, msgChan chan *message, exitChan chan bool) {
 	fmt.Fprintln(os.Stderr, "Worker up")
 
 	for {
@@ -243,7 +243,7 @@ func worker(wg *sync.WaitGroup, msgChan chan *message, exitChan chan bool) {
 			sendPhi(phi)
 			wg.Done()
 		case <-exitChan:
-			wg.Done()
+			threadsWG.Done()
 			return
 		}
 	}
@@ -400,9 +400,11 @@ func main() {
 	exitChan := make(chan bool, 1)
 
 	var wg sync.WaitGroup
-
+	var threadsWG sync.WaitGroup
+	threadsWG.Add(threads)
+	
 	for i := 0; i < threads; i++ {
-		go worker(&wg, msgChan, exitChan)
+		go worker(&wg, &threadsWG, msgChan, exitChan)
 	}
 
 	inPhones := make([]string, 0, batchSize)
@@ -442,13 +444,11 @@ func main() {
 		}
 	}
 	fmt.Fprintln(os.Stderr, "Done!")
-
-	wg.Wait()
-
 	fmt.Fprintln(os.Stderr, "Cleaning...")
-	close(exitChan)
-	wg.Add(threads)
+	
 	wg.Wait()
+	close(exitChan)
+	threadsWG.Wait()
 }
 
 func composeMessage(inPhones []string) {
